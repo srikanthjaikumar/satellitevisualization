@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head
+<meta charset="utf-8">
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="http://d3js.org/d3.geo.projection.v0.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<link href="satellite2.css" rel="stylesheet" type="text/css"  />
+<style type="text/css">
+</style>
+<a href="http://janhavis-macbook-pro.local/FinalRelease/SatellitesInOrbit.html" class="Link">Satellites In Orbit</a>
+<label class="myLabel2"><u>SATELLITES ON THE MOVE</u></label>
+</head>
+<body>
+<div id="area2">
+<label class="myLabel4">Origin Of Satellites</label>
+<input name="updateButton" id="launch" type="button" value="Launch" onclick="displayData()" class="button" />
+<table  id="table1">
+  <tr class="Row">
+    <td>
+      <label class="myLabel">Enter Owner of Satellite :</label>
+    </td>
+    <td>
+      <select id="select-owner"></select>
+    </td>
+  </tr>
+  <tr class="Row">
+    <td>
+      <label class="myLabel">Enter Contractor of Satellite:</label>
+    </td>
+    <td>
+      <select id="select-contractor"></select>
+    </td>
+  </tr>
+  <tr class="Row">
+    <td>
+      <label class="myLabel">Enter Launch Site of Satellite:</label>
+    </td>
+    <td>
+      <select id="select-launch"></select>
+    </td>
+  </tr>
+</table>
+
+</div>
+
+<script type="text/javascript">
+//Width and height of map
+var width = 1250;
+var height = 1200;
+
+var projection = d3.geo.mercator()
+        .scale([190])
+        //.translate([width / 2, height / 1.5])	
+        .translate([width / 2, height / 2]) 
+
+var path = d3.geo.path()
+        .projection(projection);
+
+//Create SVG element and append map to the SVG			
+var svg_map = d3.select("#area2")
+			.append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+var map = svg_map.append("g")			
+		.attr("class","map");
+
+var countries = svg_map.append("g")
+
+
+var arcGroup = svg_map.append('g');
+
+// Load GeoJSON data
+
+d3.csv("Dropdown2.csv", function(data) 
+
+{
+  var opt = d3.select('#select-owner').selectAll("option")
+              .data(data)
+              .enter()
+              .append("option")
+              .attr("value", function(d) { return d.ContryOfContractor; })
+              .text(function(d) { return d.ContryOfContractor; });
+    
+
+  var opt = d3.select('#select-contractor').selectAll("option")
+              .data(data)
+              .enter()
+              .append("option")
+              .attr("value", function(d) { return d.CountryOfOwnerOperator; })
+              .text(function(d) { return d.CountryOfOwnerOperator; });
+
+  var opt = d3.select('#select-launch').selectAll("option")
+              .data(data)
+              .enter()
+              .append("option")
+              .attr("value", function(d) { return d.LaunchSite; })
+              .text(function(d) { return d.LaunchSite; });
+})
+
+var marker;
+
+//Plot the map
+d3.json("/json/countries.topo.json", function(error, us) 
+{
+// Bind the data to the SVG and create one path per GeoJSON feature
+  map.selectAll("path")
+  	.data(topojson.feature(us, us.objects.countries).features)
+  	.enter()
+  	.append("path")
+  	.attr("d", path)
+  	.style("stroke", "#fff")
+  	.style("stroke-width", "1")
+  	.style("fill", function(d) {
+  	return "rgb(213,222,217)"});
+})
+
+var color = d3.scale.category20();
+
+// Map launch locations
+d3.csv("satellite_data_viz2.csv", function(data) 
+{	
+    
+    svg_map.selectAll("circle")
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("cx", function(d) {return projection([d.OperatorOwnerLon, d.OperatorOwnerLat])[0];})
+      .attr("cy", function(d) {return projection([d.OperatorOwnerLon, d.OperatorOwnerLat])[1];})
+      .attr("r",8)
+      .style("fill", "none")
+      .style("stroke-width",3)
+      .style("stroke","#08BCD0")
+
+    //Circle appended for legend - country of owner/operator
+    svg_map.append("circle")
+    .attr("cx", 950)
+    .attr("cy",20)
+    .attr("r",8)
+    .style("fill", "none")
+    .style("stroke-width",3)
+    .style("stroke","#08BCD0")
+
+    //Country of Contractor represented as Rectangle
+  	svg_map.selectAll("rectangle")
+  	.data(data)
+  	.enter()
+  	.append("rect")
+  	.attr("x", function(d) {return projection([d.CountryOfContractorLon, d.CountryOfContractorLat])[0];})
+  	.attr("y", function(d) {return projection([d.CountryOfContractorLon, d.CountryOfContractorLat])[1];})
+  	.attr("width",8)
+  	.attr("height",8)
+  	.style("fill", "#808080")
+
+    //Rectangle appended for Legend
+    svg_map.append("rect")
+    .attr("x", 945)
+    .attr("y",50)
+    .attr("width",10)
+    .attr("height",10)
+    .style("fill", "#808080")
+
+    //Launch Locations represented as Circles 
+    countries.selectAll("circle")
+  	.data(data)
+  	.enter()
+  	.append("circle")
+  	.attr("cx", function(d) {return projection([d.lon, d.lat])[0];})   
+  	.attr("cy", function(d) {return projection([d.lon, d.lat])[1];})
+    .attr("r",7)
+  	.style("stroke-width",3)
+  	.style("fill", "#2ecc71")
+
+    //circle append for legend
+    svg_map.append("circle")
+    .attr("cx", 950 )
+    .attr("cy",90)
+    .attr("r",8)
+    .style("fill", "none")
+    .style("stroke","white")
+    .style("stroke-width",3)
+    .style("fill", "#2ecc71")
+
+    //Adding the text for Legend
+    var myText =  svg_map.append("text")
+     .attr("x", 1075)
+     .attr("y", 25)
+     .attr('text-anchor', 'middle')
+     .attr("class", "myLabel3")
+     .text("Country of Operator/Owner");
+
+    var myText =  svg_map.append("text")
+       .attr("x", 1056)
+       .attr("y", 60)
+       .attr('text-anchor', 'middle')
+       .attr("class", "myLabel3")
+       .text("Country of Contractor");
+
+    var myText =  svg_map.append("text")
+       .attr("x", 1060)
+       .attr("y", 96)
+       .attr('text-anchor', 'middle')
+       .attr("class", "myLabel3")
+       .text("Country of Launch Site");
+
+
+//Tooltip for all Operator/owner, contractor and launch locations plotted(donuts)
+    svg_map.selectAll("circle")
+                .data(data)
+     
+    var tip = d3.tip()
+                 .attr('class', 'd3-tip')
+                 .offset([-10, 0])
+                 .html(function(d) 
+                 {
+                     return  "<font size=3 color=grey>COUNTRY OF OPERATOR/OWNER</font>" + "<br />" + d["CountryOfOperatoOwner"] 
+                 });
+
+    svg_map.selectAll("circle")
+            .on('mouseover.tip', tip.show)
+            .on('mouseover.highLight', function(d, i){d3.select(this).style("stroke", "skyblue")})
+            .on('mouseout.highLight', function(d, i){d3.select(this).style("stroke", "#08BCD0")})
+            .on('mouseout', tip.hide)
+            svg_map.call(tip)      
+
+    //Tooltip for all rectangles
+    svg_map.selectAll("rect")
+              .data(data)
+    
+    var tip = d3.tip()
+                .attr('class', 'd3-tip')
+                .offset([-10, 0])
+                .html(function(d) 
+                {
+                    return  "<font size=3 color=grey>COUNTRY OF CONTRACTOR</font>" + "<br />" + d["CountryOfContractor"]
+                });
+
+    svg_map.selectAll("rect")
+            .on('mouseover.tip', tip.show)
+            .on('mouseover.highLight', function(d, i){d3.select(this).style("fill", "black")})
+            .on('mouseout.highLight', function(d, i){d3.select(this).style("fill", "#808080")})
+            .on('mouseout', tip.hide)
+            svg_map.call(tip)      
+
+    //Tooltip for all Launch Locations
+    countries.selectAll("circle")
+              .data(data)
+    
+    var tip = d3.tip()
+                .attr('class', 'd3-tip')
+                .offset([-10, 0])
+                .html(function(d) 
+                {
+                    return  "<font size=3 color=grey>LAUNCH LOCATION</font>" + "<br />" + d["LaunchSite"]
+                });
+
+    countries.selectAll("circle")
+            .on('mouseover.tip', tip.show)
+            .on('mouseover.highLight', function(d, i){d3.select(this).style("fill", "purple")})
+            .on('mouseout.highLight', function(d, i){d3.select(this).style("stroke", "white"),d3.select(this).style("fill","#2ecc71")})
+            .on('mouseout', tip.hide)
+            countries.call(tip)      
+});
+
+d3.selection.prototype.moveToFront = function() {
+  return this.each(function(){
+  this.parentNode.appendChild(this);
+  });
+};
+
+d3.selection.prototype.moveToBack = function() {  
+        return this.each(function() { 
+            var firstChild = this.parentNode.firstChild; 
+            if (firstChild) { 
+                this.parentNode.insertBefore(this, firstChild); 
+            } 
+        });
+    };
+
+var message = svg_map.append("text")
+                        .attr("x", 430)
+                        .attr("y", height - 390)
+                        .attr("class", "myLabel5")
+                        .attr("id", "FilterMessage");
+
+function displayData()
+{
+    d3.select("#FilterMessage").text(" ");
+    d3.csv("satellite_data_viz2.csv", function(data43)
+    {
+      	 arcGroup.selectAll("path").remove();
+      	 
+         var lineTransition = function lineTransition(path) 
+         {
+                  path.transition()
+                      //NOTE: Change this number (in ms) to make lines draw faster or slower
+                      .duration(10000)
+                      .attrTween("stroke-dasharray", tweenDash)
+               //     .attrTween("stroke",function(d){return color(d.NameOfSatellite);}
+                      /*.each("end", function(d,i) 
+                      { 
+                          ////Uncomment following line to re-transition
+                          //d3.select(this).call(transition)
+                      });*/
+                 
+                 data43.forEach(d => 
+                 {
+                    arcGroup.selectAll(".arc")
+                            .data(data43)
+                            .style("stroke",function(d){return color(d["NameOfSatellite"])})    
+                })
+         };
+
+    var tweenDash = function tweenDash() 
+    {
+            //This function is used to animate the dash-array property, which is a
+            //  nice hack that gives us animation along some arbitrary path (in this
+            //  case, makes it look like a line is being drawn from point A to B)
+          var len = this.getTotalLength(),
+          interpolate = d3.interpolateString("0," + len, len + "," + len);
+          return function(t) { return interpolate(t); };
+    };
+   
+
+    data43 = data43.filter(function(d,i)
+    { 
+        if (d3.select("#select-owner").node().value == "ALL" && d3.select("#select-contractor").node().value != "ALL" && d3.select("#select-launch").node().value == "ALL")
+        {
+            if (d3.select("#select-contractor").node().value == d.CountryOfContractor)
+            {    return d;}
+        }
+        if (d3.select("#select-owner").node().value == "ALL" && d3.select("#select-contractor").node().value == "ALL" && d3.select("#select-launch").node().value == "ALL")
+        { return d;}
+        if (d3.select("#select-owner").node().value != "ALL" && d3.select("#select-contractor").node().value == "ALL" && d3.select("#select-launch").node().value == "ALL")
+        {
+            if (d3.select("#select-owner").node().value == d.CountryOfOperatoOwner)
+            { return d;}
+        }
+        if (d3.select("#select-owner").node().value == "ALL" && d3.select("#select-contractor").node().value == "ALL" && d3.select("#select-launch").node().value != "ALL")
+        {
+            if (d3.select("#select-launch").node().value == d.LaunchSite)
+              { return d;}
+        }
+        if (d3.select("#select-owner").node().value != "ALL" && d3.select("#select-contractor").node().value != "ALL" && d3.select("#select-launch").node().value == "ALL")
+        {
+            if (d3.select("#select-owner").node().value == d.CountryOfOperatoOwner && d3.select("#select-contractor").node().value == d.CountryOfContractor )
+              {    return d;}
+        }
+        if (d3.select("#select-owner").node().value != "ALL" && d3.select("#select-contractor").node().value == "ALL" && d3.select("#select-launch").node().value != "ALL")
+        {
+            if (d3.select("#select-owner").node().value == d.CountryOfOperatoOwner && d3.select("#select-launch").node().value == d.LaunchSite )
+              { return d;}
+        }
+        if (d3.select("#select-owner").node().value == "ALL" && d3.select("#select-contractor").node().value != "ALL" && d3.select("#select-launch").node().value != "ALL")
+        {
+            if (d3.select("#select-contractor").node().value == d.CountryOfContractor && d3.select("#select-launch").node().value == d.LaunchSite )
+              { return d;}
+        }
+        if (d3.select("#select-owner").node().value != "ALL" && d3.select("#select-contractor").node().value != "ALL" && d3.select("#select-launch").node().value != "ALL")
+        {
+            if (d3.select("#select-owner").node().value == d.CountryOfOperatoOwner && d3.select("#select-contractor").node().value == d.CountryOfContractor && d3.select("#select-launch").node().value == d.LaunchSite )
+              {  return d;}
+        }
+    })//closing for filter
+
+    if (data43.length == 0) 
+    {
+      d3.select("#FilterMessage").text("No results found. Please choose another combination.");
+    }
+    
+    links = [];
+    for(var i=0, len2=data43.length-1; i<=len2; i++)
+    {
+        if(i%2 == 0)
+        {
+          temp54 = +data43[i].CountryOfContractorLon + ( Math.random() * 15);
+        //temp54 = +data43[i].CountryOfContractorLon  + (  Math.random() *45)
+          temp55 = +data43[i].CountryOfContractorLat  + ( Math.random() * 15);
+        }
+        else
+        {
+          temp54 = +data43[i].CountryOfContractorLon  + ( Math.random() * -15)
+        //temp54 = +data43[i].CountryOfContractorLon  + (  Math.random() *45)
+          temp55 = +data43[i].CountryOfContractorLat  + ( Math.random() * -15)
+        }
+        //temp55 =  +data43[i].CountryOfContractorLat + ( Math.random() * 15)
+        links.push({
+                type: "LineString",
+                coordinates: [
+                  [ data43[i].OperatorOwnerLon, data43[i].OperatorOwnerLat ] ,
+                  [data43[i].CountryOfContractorLon, data43[i].CountryOfContractorLat],
+                  [ temp54, temp55], 
+                 [ data43[i].lon, data43[i].lat ]
+                ]
+            })
+      }
+
+      // Standard enter / update 
+      var pathArcs = arcGroup.selectAll(".arc")
+                             .data(links);
+
+      //enter
+      pathArcs.enter()
+              .append("path")
+              .attr({'class': 'arc'})
+              .style({fill: 'none'})
+      pathArcs.attr({d: path})
+              .style(
+              {
+                 'stroke': '#0000ff',
+                 'stroke-width': '1.5px'
+              })
+
+  .call(lineTransition)
+
+ //Circular marker that is going to interpolate along arc that has been clicked by the user
+
+  var marker = arcGroup.append("circle")
+      .attr("r", 8)
+      .style("fill", "steelblue")
+      .style("opacity", 0);
+       
+  //interpolation function that implicitly calculates the starting point of the arc(getPointAtLength) starts with a value of t=0
+  function translateAlong(path) 
+  {
+    var l = path.getTotalLength();
+    return function(i) {
+      return function(t) {
+        var p = path.getPointAtLength(t * l);
+        return "translate(" + p.x + "," + p.y + ")";//Move marker
+      }
+    }
+  }
+
+  arcGroup.selectAll("path")
+          .data(data43)
+          .enter()
+
+  var tip = d3.tip()
+              .attr('class', 'd3-tip')
+              .offset([-10, 0])
+              .html(function(d) 
+              {
+               //   console.log(d.NameOfSatellite)
+               //     return "<strong>Name of Satellite:</strong> <span style='color:red'>" + d.NameOfSatellite + "</span>" + "<br />" + d.lon
+               return d["NameOfSatellite"] + 
+               "<br />" + "<font size=3 color=grey>COUNTRY OF OPERATOR/OWNER</font>" + "<br />" + d["CountryOfOperatoOwner"] + "<br />" + 
+               "<font size=3 color=grey>COUNTRY OF CONTRACTOR</font>" + "<br />" + d["CountryOfContractor"] + "<br />" +
+               "<font size=3 color=grey>LAUNCH SITE</font>" + "<br />" + d["LaunchSite"] + "<br />" ;
+              });
+            
+           
+ arcGroup.selectAll("path")
+        .on('mouseover.tip', tip.show)
+        .on('mouseover.highLight', function(d, i){d3.select(this).style("stroke", "black").style("stroke-width", "4").style("opacity", 0.5).moveToFront(); })
+        .on('mouseout.highLight', function(d, i){d3.select(this).style("stroke", color(d.NameOfSatellite)).style("stroke-width", "1.5").moveToBack();})
+        .on('mouseout', tip.hide)
+        .on('click', function(d) {
+            marker
+            .style("opacity", 1)
+            .transition()
+            .duration(9000)
+            .attrTween("transform", translateAlong(this))
+            .each("end", function(d) {
+            marker.style("opacity", 0);
+            });
+          })
+    
+
+  arcGroup.call(tip)      
+            // Uncomment this line to remove the transition
+    });
+    }
+</script>
+</body>
+</html>

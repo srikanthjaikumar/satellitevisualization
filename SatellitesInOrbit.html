@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.6.2.min.js"></script> 
+<script type="text/javascript" src="/json/jquery.tipsy.js"></script>
+<link href="tipsy.css" rel="stylesheet" type="text/css"  />
+<link href="satellite.css" rel="stylesheet" type="text/css"  />
+<style type="text/css">
+</style>
+<a href="http://janhavis-macbook-pro.local/FinalRelease/OriginOfSatellites.html" class="Link">Origin Of Satellites</a>
+<label class="myLabel2"><u>SATELLITES ON THE MOVE</u></label>
+</style>
+</head>
+<body>
+<div id="area2">
+<label class="myLabel4">Satellites In Orbit</label>
+<input name="updateButton" id="launch" type="button" value="Launch" onclick="displayData()" class="button" />
+<table  id="table1">
+  <tr class="Row">
+    <td>
+      <label class="myLabel">Enter Satellite Orbit:</label>
+    </td>
+    <td>
+      <select id="select-orbit">
+        <option value="ALL">ALL</option> 
+        <option value="Elliptical">Elliptical</option>
+        <option value="GEO">GEO</option>
+        <option value="MEO">MEO</option>
+        <option value="LEO">LEO</option> 
+      </select>
+    </td>
+  </tr>
+  <tr class="Row">
+    <td>
+      <label class="myLabel">Enter User of Satellite:</label>
+    </td>
+    <td>
+      <select id="select-user">
+        <option value="ALL">ALL</option> 
+        <option value="Civil">Civil</option> 
+        <option value="Commercial">Commercial</option>
+        <option value="Government">Government</option>
+        <option value="Military">Military</option>  
+      </select>
+    </td>
+  </tr>
+  <tr class="Row">
+    <td>
+      <label class="myLabel">Enter Country of Satellite:</label>
+    </td>
+    <td>
+      <select id="select-country"></select>
+    </td>
+  </tr>
+</table>
+</div>
+<script type="text/javascript">
+//Width and height of map
+
+var width = 1250;
+var height = 2000;
+
+var projection = d3.geo.mercator()
+					.scale([180])
+					.translate([600, 1400]);
+
+var path = d3.geo.path()
+        	.projection(projection);
+
+
+//Create SVG element and append map to the SVG			
+var svg_map = d3.select("#area2")
+				.append("svg")
+				.attr("width", width)
+				.attr("height", height);
+
+var rectGroup = svg_map.append("g").attr("class", "rect");
+
+var legendCircle = svg_map.append("g").attr("class", "circle");
+// Load GeoJSON data
+d3.json("/json/countries.topo.json", function(error, us) 
+{
+	// Bind the data to the SVG and create one path per GeoJSON feature
+	svg_map.selectAll("path")
+		.data(topojson.feature(us, us.objects.countries).features)
+		.enter()
+		.append("path")
+		.attr("d", path)
+		.style("stroke", "#fff")
+		.style("stroke-width", "1")
+		.style("fill", function(d) {return "rgb(213,222,217)";})
+
+	// Map launch locations
+	d3.csv("launch_sites.csv", function(data) 
+	{
+		var launchLocations =	svg_map.selectAll("rectangle")
+				.data(data)
+				.enter()
+				.append("rect")
+				.attr("x", function(d){return projection([d.lon, d.lat])[0];})
+				.attr("y", function(d) {return projection([d.lon, d.lat])[1];})
+				.attr("width",function(d)
+				{
+					if (d.LaunchLocation == "International Space Station") {return 60;}
+					else {return 10;}
+				})
+				.attr("height",function(d)
+				{
+					if (d.LaunchLocation == "International Space Station") {return 60;}
+					else {return 10;}
+				})
+				.style("fill", "rgb(217,91,67)")	
+
+  
+		        svg_map.append("g")
+		        .attr("stroke-width", 4)
+		        .attr("stroke", "grey")
+		        .attr("fill", "none")
+		        .append("path")
+		        .attr("d", function(d) { return "M 0 1000 A 670 200 0 0 1 1250 1000"})
+
+		        svg_map.append("g")
+		        .attr("stroke-width", 4)
+		        .attr("stroke", "grey")
+		        .attr("fill", "none")
+		        .append("path")
+		        .attr("d", function(d) { return "M 1250 1430 A 617 200 0 0 1 0 1430"})
+		       //  .attr("d", function(d) { return dataset.d})
+
+
+				//tooltip animation for all launch locations
+				launchLocations.selectAll("rectangle")
+		       		.data(data)
+		       		.enter()
+		     	   	.append("svg:rectangle")
+		        	.attr("stroke", "black")
+		    //   		.attr("fill", function(d, i) { return colors(i);})
+		         	.attr("cx", function(d, i) { return d.x; })
+		         	.attr("cy", function(d, i) { return d.y; })
+		         	.attr("r", function(d, i) { return d.r; });
+		     
+
+		      	$('svg rect').tipsy(
+		      	{ 
+		        	gravity: 'w', 
+		        	fade : true,
+		        	trigger : 'hover',
+		        	html: true, 
+		        	title: function() {
+		        	var d = this.__data__;
+		       		return  d["LaunchLocation"] + "<br />" +
+		           "<font size=3 color=grey>Location</font>" + "<br />" + d.Country}
+    			});//closing for tipsy
+
+		        $('svg circle').tipsy(
+		        { 
+		          gravity: 'w', 
+		          fade : true,
+		          trigger : 'hover',
+		          html: true, 
+		          title: function() {
+		          var d = this.__data__;
+		          return  d["LaunchLocation"] + "<br />" +
+		          "<font size=3 color=grey>Location</font>" + "<br />" + d.Country }
+		      });//closing for tipsy
+	})
+})
+
+
+var cValue = function(d) { return d["LaunchVehicleCategory"];},
+color = d3.scale.category20();
+
+
+
+//Filling Dropdown
+d3.csv("Dropdown.csv", function(data) 
+{
+   var opt = d3.select('#select-country').selectAll("option")
+    .data(data)
+    .enter()
+        .append("option")
+        .attr("value", function(d) { return d.Country; })
+        .text(function(d) { return d.Country; });
+})
+
+var message = svg_map.append("text")
+					              .attr("x", 400)
+					              .attr("y", height - 330)
+                        .attr("class", "myLabel5")
+					              .attr("id", "FilterMessage");
+
+
+function displayData()
+{
+	d3.csv("satellite_data_viz1.csv", function(data) 
+	{
+	  data.forEach(function(d)
+     { 
+      d['Perigee'] = +d['Perigee']; 
+      d['Apogee'] = +d['Apogee']; 
+     }); 
+
+		  svg_map.selectAll("Circle").remove();
+      svg_map.selectAll(".legend").remove();
+      //d3.selectAll("FilterMessagconsole.log(FilterMessage);
+      d3.select("#FilterMessage").text(" ");
+      /*d3.select("#legendheading").text(" ");
+      d3.select("#mass1").text(" ");
+      d3.select("#mass2").text(" ");
+      d3.select("#mass3").text(" ");
+      svg_map.select("#massLine1").remove();*/
+	  	var satellites = svg_map.selectAll(".dot")
+			.data(data)
+			.enter()
+			.append("circle")
+			.attr("class", "dot")
+			.style("fill",function(d){return color(cValue(d));})
+			.attr("cx", function(d) {return projection([d.lon, d.lat])[0];})
+			.attr("cy", function(d) {return projection([d.lon, d.lat])[1];})
+			.attr("r", function(d) {return (12  +  (d.LaunchMass  / 1000));})
+			.transition() 
+			.attr("cy",function(d) 
+			{
+          var meanDistance = (d.Perigee + d.Apogee)/2;
+   				if (meanDistance <= 1510) {return (800  -  ((meanDistance - 310)  / 4 ))}
+   				if (meanDistance > 2025 && meanDistance  <= 29950) {return (500  -  (  (meanDistance - 2025)  / 180 ))}
+   				if (meanDistance > 34390 && meanDistance <= 37790) {return (350  -  (  (meanDistance - 34390)  / 17 ))}
+   				else {return 150  -  (  (meanDistance - 43000)  / 820 )} 
+			})
+
+			.attr("cx", function(d) {return ((Math.random() * 1190) + 20);}) // Code for random scattering. 1250 is map width thats i gave that. That defines range of scattering
+			.duration(20000)
+			.attr("display", "none")
+			.filter(function(d)
+			{ 
+				if (d3.select("#select-orbit").node().value == "ALL" && d3.select("#select-user").node().value == "ALL" && d3.select("#select-country").node().value == "ALL") 
+					{return d;}
+				if (d3.select("#select-orbit").node().value == "ALL" && d3.select("#select-user").node().value == "ALL" && d3.select("#select-country").node().value != "ALL")
+				{
+          			if(d["CountryOfOperatoOwner"].search(d3.select("#select-country").node().value) != -1)
+            			{return d};
+				}
+        		if (d3.select("#select-orbit").node().value == "ALL" && d3.select("#select-user").node().value !="ALL" && d3.select("#select-country").node().value == "ALL")
+        		{
+           			if(d["Users"].search(d3.select("#select-user").node().value) != -1)
+            			{return d};
+        		}
+
+        		if (d3.select("#select-orbit").node().value !="ALL" && d3.select("#select-user").node().value == "ALL" && d3.select("#select-country").node().value == "ALL")
+        		{
+          			if(d3.select("#select-orbit").node().value == d["ClassOfOrbit"]) 
+          				{return d;}
+        		}
+        		if (d3.select("#select-orbit").node().value !="ALL" && d3.select("#select-user").node().value !="ALL" && d3.select("#select-country").node().value == "ALL")
+        		{
+          			temp55= d["Users"].search(d3.select("#select-user").node().value)
+          			if(d3.select("#select-orbit").node().value == d["ClassOfOrbit"] && temp55 !=-1)
+          				{return d;}
+        		}
+       			if (d3.select("#select-orbit").node().value != "ALL" && d3.select("#select-user").node().value == "ALL" && d3.select("#select-country").node().value !="ALL")
+				{
+           			temp56= d["CountryOfOperatoOwner"].search(d3.select("#select-country").node().value)
+					if(d3.select("#select-orbit").node().value == d["ClassOfOrbit"] && temp56 !=-1)
+						{return d;}
+				}
+        		if (d3.select("#select-orbit").node().value == "ALL" && d3.select("#select-user").node().value !="ALL" && d3.select("#select-country").node().value !="ALL")
+        		{
+           			temp57= d["Users"].search(d3.select("#select-user").node().value)
+           			temp58= d["CountryOfOperatoOwner"].search(d3.select("#select-country").node().value)
+          			if(temp57 !=-1 && temp58 !=-1)
+          				{return d;}
+        		}
+				else
+				{
+          			temp54= d["Users"].search(d3.select("#select-user").node().value)
+           			temp53= d["CountryOfOperatoOwner"].search(d3.select("#select-country").node().value)
+		   			if(d3.select("#select-orbit").node().value == d["ClassOfOrbit"] && temp54 != -1 && temp53 !=-1)
+		   				{return d;}
+  				}
+  			})
+       		.attr("display", "TRUE")
+
+       if(satellites[0].length == 0)
+       {
+       	  d3.select("#FilterMessage").text("No results found. Please choose another combination.");
+
+       }
+
+      
+        var legend = svg_map.selectAll(".legend")
+            .data(color.domain())
+            .enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) { return "translate(-20," + i * 25 + ")"; });
+        // draw legend colored rectangles
+
+        legend.append("rect")
+            .attr("x", 120)
+            .attr("y", height - 350)
+            .attr("width", 18)
+            .attr("height", 18)
+            .style("fill", color);
+        // draw legend text
+
+        var legendHeading = legend.append("text")
+            .attr("x", 150)
+            .attr("y", height - 341)
+            .attr("dy", ".35em")
+            .style("text-anchor", "start")
+            .style("fill", "#004669")
+            .style("class","myLabel")
+            //.style("font-size","15px")
+            //.style("font-family","Archivo Black")
+            .text(function(d) { return d;})
+
+         //Legend Heading
+         var legendheading = svg_map.append("text")
+              .attr("x", 100)
+              .attr("y", height - 360)
+              .attr("class", "myLabel3")
+              .attr("id", "legendheading")
+              .text("Launch Vehicle");
+
+          svg_map.append("circle")
+      		    .attr("cx", 1000 )
+      		    .attr("cy", 1718 )
+      		    .attr("r",12)
+      		    .style("fill", "rgb(6,120,155)")
+
+          svg_map.append("circle")
+              .attr("cx", 1040 )
+              .attr("cy", 1708 )
+              .attr("r",22)
+              .style("fill", "none")
+              .style("stroke-dasharray", ("8,4"))
+              .style("stroke", "rgb(6,120,155)")
+
+      		svg_map.append("circle")
+      		    .attr("cx", 1100 )
+      		    .attr("cy", 1700 )
+      		    .attr("r",30)
+      		    .style("fill", "rgb(6,120,155)")
+
+      		 var massLine = svg_map.append("svg:line")
+      	        .attr("x1", 1000)
+      	        .attr("y1", 1735)
+      	        .attr("x2", 1100)
+      	        .attr("y2", 1735)
+                .attr("id", "massLine1")
+            		.style("stroke", "rgb(6,120,155)")
+            		.style("stroke-width", 6)
+                .style("fill", "none");
+        	
+          	var mass1 = svg_map.append("text")
+                    .attr("x", 1030)
+                    .attr("y", height - 345)
+                    .style("font-size","18px")
+                    .attr("id", "mass1")
+                    .style("font-family", 'Archivo Black')
+                    .text("Mass");
+
+          	var mass2 = svg_map.append("text")
+                    .attr("x", 990)
+                    .attr("y", 1750 )
+                    .style("font-size","15px")
+                    .style("color","#004669")
+                    .attr("id", "mass2")
+                    .style("font-family", 'Archivo Black')
+                    .text("1kg");
+            
+            var mass3 = svg_map.append("text")
+                    .attr("x", 1100)
+                    .attr("y", 1750)
+                    .style("font-size","15px")
+                    .attr("id", "mass3")
+                    .style("font-family", 'Archivo Black')
+                    .text("18000kg");
+
+		svg_map.selectAll("circle")
+			.data(data)
+       		.enter()
+       		.append("svg:circle")
+      // 	  .attr("fill", function(d, i) { return colors(i);})
+          .attr("stroke","black")
+         	.attr("cx", function(d, i) { return d.x; })
+         	.attr("cy", function(d, i) { return d.y; })
+        	.attr("r", function(d, i) { return d.r; })
+
+   		 svg_map.selectAll("circle")
+         .on('mouseover', function(d){d3.select(this).style('stroke-width','5px').style('stroke','black')})
+         .on('mouseout', function(d, i){d3.select(this).style('stroke','none').style("fill", color(cValue(d)))})
+         .on("click", function()
+                 {
+                if (this !== d3.select('circle:last-child').node()) {
+                  this.parentElement.appendChild(this)
+                  d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .transition()
+                    .ease('elastic')
+                }
+              });
+
+
+      	$('svg circle').tipsy({ 
+        gravity: 'w', 
+        fade : true,
+        trigger : 'hover', 
+        html: true, 
+        title: function() 
+        {
+          var d = this.__data__;
+       	  return d["NameOfSatellite"] + 
+          "<br />" + "<font size=3 color=grey>PURPOSE</font>" + "<br />" + d["Purpose"] + "<br />" + 
+
+          "<font size=3 color=grey>OWNER/OPERATOR</font>" + "<br />" + d["Operator.Owner"] + "<br />" +
+
+          "<font size=3 color=grey>LAUNCH DATE</font>" + "<br />" + d["DateOfLaunch"] + "<br />" +
+
+          "<font size=3 color=grey>USERS</font>" + "<br />" + d["Users"] + "<br />";
+          }
+  });
+   });
+
+}
+
+  
+//appending text"Distance above the earth"      <span style='color:blue'>
+
+var rec1 = svg_map.append("rect")
+    .attr("x", 2)
+    .attr("y", 0)
+    .attr("width", "100%")
+    .attr("height", 150)
+    .style("fill", "rgb(46,136,166)")
+    .style("stroke", "rgb(6,120,155)")
+    .style("stroke-width", 1); 
+
+        
+
+var rect2 = svg_map.append("rect")
+    .attr("x", 2)
+    .attr("y", 150)
+    .attr("width", "100%")
+    .attr("height", 200)
+    .style("fill", "rgb(101,169,191)")
+    .style("stroke", "rgb(6,120,155)")
+    .style("stroke-width", 1);
+
+var rect3 = svg_map.append("rect")
+    .attr("x", 2)
+    .attr("y", 350)
+    .attr("width", "100%")
+    .attr("height", 150)
+    .style("fill", "rgb(155,197,212)")
+    .style("stroke", "rgb(6,120,155)")
+    .style("stroke-width", 1);
+
+        
+
+var rect4 = svg_map.append("rect")
+    .attr("x", 2)
+    .attr("y", 500)
+    .attr("width", "100%")
+    .attr("height", 300)
+    .style("fill", "rgb(218,232,237)")
+    .style("stroke", "rgb(6,120,155)")
+    .style("stroke-width", 1); 
+
+    
+
+  
+
+var myText =  svg_map.append("text")
+              .attr("y", 795)
+              .attr("x", 15)
+              .attr('text-anchor', 'middle')
+              .attr("class", "myLabel")
+              .text("300");
+
+
+
+var myText =  svg_map.append("text")
+              .attr("y", 495)
+              .attr("x", 20)
+              .attr('text-anchor', 'middle')
+              .attr("class", "myLabel")//easy to style with CSS
+              .text("2000");
+
+
+
+var myText =  svg_map.append("text")
+              .attr("y", 345)
+              .attr("x", 25)
+              .attr('text-anchor', 'middle')
+              .attr("class", "myLabel")
+              .text("34000");
+
+
+
+var myText =  svg_map.append("text")
+              .attr("y", 145)
+              .attr("x", 25)
+              .attr('text-anchor', 'middle')
+              .attr("class", "myLabel")
+              .text("40000");
+
+
+
+var myText4 =  svg_map.append("text")
+              .attr("y", 820)
+              .attr("x", 0)
+              .attr('text-anchor', 'start')
+              .style("font-size","18px")
+              .style("font-family", 'Archivo Black')
+              .style("fill", "#004669")
+              //.attr("transform", "rotate(90,700,600)")
+              .text("Distance Above The Earth(km)");
+
+</script>
+</body>
+</html>
